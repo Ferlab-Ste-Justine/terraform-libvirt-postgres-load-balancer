@@ -19,6 +19,13 @@ locals {
     mac = macvtap_interface.mac
     hostname = null
   }]
+  fluentd_conf = templatefile(
+    "${path.module}/files/fluentd.conf.tpl", 
+    {
+      fluentd = var.fluentd
+      fluentd_buffer_conf = var.fluentd.buffer.customized ? var.fluentd.buffer.custom_value : file("${path.module}/files/fluentd.conf")
+    }
+  )
 }
 
 data "template_cloudinit_config" "user_data" {
@@ -34,6 +41,8 @@ data "template_cloudinit_config" "user_data" {
         ssh_admin_user = var.ssh_admin_user
         admin_user_password = var.admin_user_password
         chrony = var.chrony
+        fluentd = var.fluentd
+        fluentd_conf = local.fluentd_conf
         patroni_client_certificate = tls_locally_signed_cert.patroni_client_certificate.cert_pem
         patroni_client_key = tls_private_key.patroni_client_key.private_key_pem
         haproxy = var.haproxy
