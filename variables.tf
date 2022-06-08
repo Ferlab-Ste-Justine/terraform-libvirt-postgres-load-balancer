@@ -78,6 +78,7 @@ variable "ssh_admin_public_key" {
 
 variable "haproxy" {
   description = "Haproxy configuration parameters"
+  sensitive   = true
   type        = object({
     postgres_nodes_max_count   = number
     postgres_nameserver_ips    = list(string)
