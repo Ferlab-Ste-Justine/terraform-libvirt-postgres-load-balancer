@@ -22,6 +22,14 @@
   </storage>
 </source>
 
+<filter ${fluentd.load_balancer_tag}>
+  @type record_transformer
+  <record>
+    hostname "#{Socket.gethostname}"
+    timestamp $${time}
+  </record>
+</filter>
+
 <match *>
   @type forward
   transport tls
