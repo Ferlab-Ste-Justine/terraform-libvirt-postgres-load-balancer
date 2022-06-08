@@ -26,7 +26,7 @@
   @type record_transformer
   <record>
     hostname "#{Socket.gethostname}"
-    timestamp $${time}
+    application load-balancer
   </record>
 </filter>
 
