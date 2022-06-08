@@ -84,10 +84,15 @@ variable "haproxy" {
     postgres_nameserver_ips    = list(string)
     postgres_domain            = string
     patroni_client             = object({
-        ca_key                           = string
-        ca_certificate                   = string
-        certificate_validity_period      = number
-        certificate_early_renewal_period = number
+      ca_key                           = string
+      ca_certificate                   = string
+      certificate_validity_period      = number
+      certificate_early_renewal_period = number
+    })
+    timeouts                   = object({
+      connect = string
+      check   = string
+      idle    = string
     })
   })
 }

@@ -41,6 +41,10 @@ This module takes the following variables as input:
     - **ca_certificate**: Public key of the ca that will generate the client certificate.
     - **certificate_validity_period**: How long the client certificate should last in hours.
     - **certificate_early_renewal_period**: Period (in hours) before the client certificate's expiry when terraform should try to renew the certificate.
+  - **timeouts**: Various timeouts for haproxy. It has the following keys:
+    - **connect**: Timeout to establish a new connection
+    - **check**: Timeout on the checks that determine which patroni node is master
+    - **idle**: Timeout on iddle connections, either between haproxy and the client or between haproxy and a postgres backend
 - **chrony**: Optional chrony configuration for when you need a more fine-grained ntp setup on your vm. It is an object with the following fields:
   - **enabled**: If set the false (the default), chrony will not be installed and the vm ntp settings will be left to default.
   - **servers**: List of ntp servers to sync from with each entry containing two properties, **url** and **options** (see: https://chrony.tuxfamily.org/doc/4.2/chrony.conf.html#server)
