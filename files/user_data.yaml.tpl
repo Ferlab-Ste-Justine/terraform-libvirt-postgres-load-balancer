@@ -163,8 +163,4 @@ runcmd:
   - apt-get update
   - apt-get install -y docker-ce docker-ce-cli containerd.io
   - systemctl enable docker
-%{ if fluentd.enabled ~}
-  - docker run -d --restart=always --name=postgres_load_balancer --network=host -v /opt/haproxy:/usr/local/etc/haproxy:ro -v /opt/patroni:/opt/patroni/:ro --log-driver=fluentd --log-opt fluentd-address=127.0.0.1:28080 --log-opt fluentd-retry-wait=1s --log-opt fluentd-max-retries=3600 --log-opt fluentd-sub-second-precision=true --log-opt tag=${fluentd.load_balancer_tag} haproxy:2.2.14
-%{ else ~}
-  - docker run -d --restart=always --name=postgres_load_balancer --network=host -v /opt/haproxy:/usr/local/etc/haproxy:ro -v /opt/patroni:/opt/patroni/:ro haproxy:2.2.14
-%{ endif ~}
+  - docker run -d --restart=always --name=postgres_load_balancer --network=host -v /opt/haproxy:/usr/local/etc/haproxy:ro -v /opt/patroni:/opt/patroni/:ro ${container_params.fluentd} ${container_params.config} haproxy:2.2.14

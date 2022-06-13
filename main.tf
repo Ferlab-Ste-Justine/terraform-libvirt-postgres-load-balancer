@@ -26,6 +26,10 @@ locals {
       fluentd_buffer_conf = var.fluentd.buffer.customized ? var.fluentd.buffer.custom_value : file("${path.module}/files/fluentd_buffer.conf")
     }
   )
+  container_params = {
+    fluentd = var.fluentd.enabled ? "--log-driver=fluentd --log-opt fluentd-address=127.0.0.1:28080 --log-opt fluentd-retry-wait=1s --log-opt fluentd-max-retries=3600 --log-opt fluentd-sub-second-precision=true --log-opt tag=${var.fluentd.load_balancer_tag}" : ""
+    config = var.container_registry.url != "" ? "--config /opt/docker/.config" : ""
+  }
 }
 
 data "template_cloudinit_config" "user_data" {
@@ -53,6 +57,7 @@ data "template_cloudinit_config" "user_data" {
           }
         )
         container_registry = var.container_registry
+        container_params = local.container_params
       }
     )
   }
