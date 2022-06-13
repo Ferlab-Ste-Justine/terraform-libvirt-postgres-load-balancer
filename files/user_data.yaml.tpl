@@ -25,8 +25,8 @@ write_files:
       {
         "auths": {
           "${container_registry.url}": {
-			      "auth": "${base64encode(join("", [container_registry.username, ":", container_registry.password]))}"
-		      }
+            "auth": "${base64encode(join("", [container_registry.username, ":", container_registry.password]))}"
+          }
         }
       }
 %{ endif ~}
