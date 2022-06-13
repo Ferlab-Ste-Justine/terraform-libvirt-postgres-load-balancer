@@ -52,6 +52,7 @@ data "template_cloudinit_config" "user_data" {
             haproxy = var.haproxy
           }
         )
+        container_registry = var.container_registry
       }
     )
   }

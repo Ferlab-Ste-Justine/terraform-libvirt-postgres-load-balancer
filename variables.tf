@@ -164,3 +164,18 @@ variable "chrony" {
     }
   }
 }
+
+variable "container_registry" {
+  description = "Parameters for the container registry"
+  sensitive   = true
+  type        = object({
+    url      = string,
+    username = string,
+    password = string
+  })
+  default = {
+    url      = ""
+    username = ""
+    password = ""
+  }
+}

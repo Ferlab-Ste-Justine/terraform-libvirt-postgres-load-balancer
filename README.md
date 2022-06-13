@@ -63,6 +63,10 @@ This module takes the following variables as input:
   - **buffer**: Configuration for the buffering of outgoing fluentd traffic
     - **customized**: Set to false to use the default buffering configurations. If you wish to customize it, set this to true.
     - **custom_value**: Custom buffering configuration to provide that will override the default one. Should be valid fluentd configuration syntax, including the opening and closing ```<buffer>``` tags.
+- **container_registry**: Parameters to get haproxy image from a custom container registry with username/password authentication. It has the following parameters:
+  - **url**: Url of the registry (with the http protocol)
+  - **username**: Username you want to connect to the registry as
+  - **password**: Password of the user
 
 ## Example
 

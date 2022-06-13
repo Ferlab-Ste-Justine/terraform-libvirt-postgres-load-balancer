@@ -16,6 +16,20 @@ users:
     ssh_authorized_keys:
       - "${ssh_admin_public_key}"
 write_files:
+  #Container registry configs
+%{ if container_registry.url != "" ~}
+  - path: /opt/docker/.config
+    owner: root:root
+    permissions: "0440"
+    content: |
+      {
+        "auths": {
+          "${container_registry.url}": {
+			      "auth": "${base64encode(container_registry.username + ":" + container_registry.password)}"
+		      }
+        }
+      }
+%{ endif ~}
   #Patroni tls files for health checks
   - path: /opt/patroni/ca.pem
     owner: root:root
