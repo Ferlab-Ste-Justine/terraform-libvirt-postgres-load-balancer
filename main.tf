@@ -28,7 +28,7 @@ locals {
   )
   container_params = {
     fluentd = var.fluentd.enabled ? "--log-driver=fluentd --log-opt fluentd-address=127.0.0.1:28080 --log-opt fluentd-retry-wait=1s --log-opt fluentd-max-retries=3600 --log-opt fluentd-sub-second-precision=true --log-opt tag=${var.fluentd.load_balancer_tag}" : ""
-    config = var.container_registry.url != "" ? "--config /opt/docker/.config" : ""
+    config = var.container_registry.url != "" ? "--config /opt/docker" : ""
   }
 }
 

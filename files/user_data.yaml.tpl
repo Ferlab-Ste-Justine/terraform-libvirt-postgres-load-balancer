@@ -18,7 +18,7 @@ users:
 write_files:
   #Container registry configs
 %{ if container_registry.url != "" ~}
-  - path: /opt/docker/.config
+  - path: /opt/docker/config.json
     owner: root:root
     permissions: "0440"
     content: |
@@ -163,4 +163,4 @@ runcmd:
   - apt-get update
   - apt-get install -y docker-ce docker-ce-cli containerd.io
   - systemctl enable docker
-  - docker run -d --restart=always --name=postgres_load_balancer --network=host -v /opt/haproxy:/usr/local/etc/haproxy:ro -v /opt/patroni:/opt/patroni/:ro ${container_params.fluentd} ${container_params.config} haproxy:2.2.14
+  - docker ${container_params.config} run -d --restart=always --name=postgres_load_balancer --network=host -v /opt/haproxy:/usr/local/etc/haproxy:ro -v /opt/patroni:/opt/patroni/:ro ${container_params.fluentd} haproxy:2.2.14
