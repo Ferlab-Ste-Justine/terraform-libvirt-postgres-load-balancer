@@ -68,6 +68,7 @@ This module takes the following variables as input:
   - **url**: Url of the registry (with the http protocol)
   - **username**: Username you want to connect to the registry as
   - **password**: Password of the user
+- **install_dependencies**: Whether cloud-init should install external dependencies (should be set to false if you already provide an image with the external dependencies built-in).
 
 ## Example
 

@@ -1,11 +1,5 @@
 locals {
   cloud_init_volume_name = var.cloud_init_volume_name == "" ? "${var.name}-cloud-init.iso" : var.cloud_init_volume_name
-  network_config = templatefile(
-    "${path.module}/files/network_config.yaml.tpl", 
-    {
-      macvtap_interfaces = var.macvtap_interfaces
-    }
-  )
   network_interfaces = length(var.macvtap_interfaces) == 0 ? [{
     network_name = var.libvirt_network.network_name != "" ? var.libvirt_network.network_name : null
     network_id = var.libvirt_network.network_id != "" ? var.libvirt_network.network_id : null
@@ -21,54 +15,127 @@ locals {
     mac = macvtap_interface.mac
     hostname = null
   }]
-  fluentd_conf = templatefile(
-    "${path.module}/files/fluentd.conf.tpl", 
-    {
-      fluentd = var.fluentd
-      fluentd_buffer_conf = var.fluentd.buffer.customized ? var.fluentd.buffer.custom_value : file("${path.module}/files/fluentd_buffer.conf")
+}
+
+module "network_configs" {
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//network?ref=v0.4.0"
+  network_interfaces = var.macvtap_interfaces
+}
+
+module "postgres_load_balancer_configs" {
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//postgres-load-balancer?ref=v0.4.0"
+  install_dependencies = var.install_dependencies
+  haproxy = {
+    postgres_nodes_max_count   = var.haproxy.postgres_nodes_max_count
+    postgres_nameserver_ips    = var.haproxy.postgres_nameserver_ips
+    postgres_domain            = var.haproxy.postgres_domain
+    patroni_api                = {
+      ca_certificate     = var.haproxy.patroni_client.ca_certificate
+      client_certificate = tls_locally_signed_cert.patroni_client_certificate.cert_pem
+      client_key         = tls_private_key.patroni_client_key.private_key_pem
     }
-  )
-  container_params = {
-    fluentd = var.fluentd.enabled ? "--log-driver=fluentd --log-opt fluentd-address=127.0.0.1:28080 --log-opt fluentd-retry-wait=1s --log-opt fluentd-max-retries=3600 --log-opt fluentd-sub-second-precision=true --log-opt tag=${var.fluentd.load_balancer_tag}" : ""
-    config = var.container_registry.url != "" ? "--config /opt/docker" : ""
+    timeouts                   = var.haproxy.timeouts
   }
+  container_registry = var.container_registry
+  fluentd = {
+    port = 28080
+    tag = var.fluentd.enabled ? var.fluentd.load_balancer_tag : ""
+  }
+}
+
+module "prometheus_node_exporter_configs" {
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//prometheus-node-exporter?ref=v0.4.0"
+  install_dependencies = var.install_dependencies
+}
+
+module "chrony_configs" {
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//chrony?ref=v0.4.0"
+  install_dependencies = var.install_dependencies
+  chrony = {
+    servers  = var.chrony.servers
+    pools    = var.chrony.pools
+    makestep = var.chrony.makestep
+  }
+}
+
+module "fluentd_configs" {
+  source = "git::https://github.com/Ferlab-Ste-Justine/terraform-cloudinit-templates.git//fluentd?ref=v0.4.0"
+  install_dependencies = var.install_dependencies
+  fluentd = {
+    docker_services = [
+      {
+        tag                = var.fluentd.load_balancer_tag
+        service            = "load-balancer"
+        local_forward_port = 28080
+      }
+    ]
+    systemd_services = [
+      {
+        tag     = var.fluentd.node_exporter_tag
+        service = "node-exporter"
+      }
+    ]
+    forward = var.fluentd.forward,
+    buffer = var.fluentd.buffer
+  }
+}
+
+locals {
+  cloudinit_templates = concat([
+      {
+        filename     = "base.cfg"
+        content_type = "text/cloud-config"
+        content = templatefile(
+          "${path.module}/files/user_data.yaml.tpl", 
+          {
+            hostname = var.name
+            ssh_admin_public_key = var.ssh_admin_public_key
+            ssh_admin_user = var.ssh_admin_user
+            admin_user_password = var.admin_user_password
+          }
+        )
+      },
+      {
+        filename     = "postgres_load_balancer.cfg"
+        content_type = "text/cloud-config"
+        content      = module.postgres_load_balancer_configs.configuration
+      },
+      {
+        filename     = "node_exporter.cfg"
+        content_type = "text/cloud-config"
+        content      = module.prometheus_node_exporter_configs.configuration
+      }
+    ],
+    var.chrony.enabled ? [{
+      filename     = "chrony.cfg"
+      content_type = "text/cloud-config"
+      content      = module.chrony_configs.configuration
+    }] : [],
+    var.fluentd.enabled ? [{
+      filename     = "fluentd.cfg"
+      content_type = "text/cloud-config"
+      content      = module.fluentd_configs.configuration
+    }] : []
+  )
 }
 
 data "template_cloudinit_config" "user_data" {
   gzip = false
   base64_encode = false
-  part {
-    content_type = "text/cloud-config"
-    content = templatefile(
-      "${path.module}/files/user_data.yaml.tpl", 
-      {
-        node_name = var.name
-        ssh_admin_public_key = var.ssh_admin_public_key
-        ssh_admin_user = var.ssh_admin_user
-        admin_user_password = var.admin_user_password
-        chrony = var.chrony
-        fluentd = var.fluentd
-        fluentd_conf = local.fluentd_conf
-        patroni_client_certificate = tls_locally_signed_cert.patroni_client_certificate.cert_pem
-        patroni_client_key = tls_private_key.patroni_client_key.private_key_pem
-        haproxy = var.haproxy
-        haproxy_config = templatefile(
-          "${path.module}/files/lb-haproxy.cfg",
-          {
-            haproxy = var.haproxy
-          }
-        )
-        container_registry = var.container_registry
-        container_params = local.container_params
-      }
-    )
+  dynamic "part" {
+    for_each = local.cloudinit_templates
+    content {
+      filename     = part.value["filename"]
+      content_type = part.value["content_type"]
+      content      = part.value["content"]
+    }
   }
 }
 
 resource "libvirt_cloudinit_disk" "postgres_lb_node" {
   name           = local.cloud_init_volume_name
   user_data      = data.template_cloudinit_config.user_data.rendered
-  network_config = length(var.macvtap_interfaces) > 0 ? local.network_config : null
+  network_config = length(var.macvtap_interfaces) > 0 ? module.network_configs.configuration : null
   pool           = var.cloud_init_volume_pool
 }
 
